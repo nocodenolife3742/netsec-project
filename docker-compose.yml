@@ -5,8 +5,9 @@ services:
     environment:
       GITEA__security__INSTALL_LOCK: "true"
       GITEA__database__DB_TYPE: sqlite3
+      GITEA__service__DISABLE_REGISTRATION: "false"
     ports:
-      - "3000:3000"
+      - "5000:3000"
     volumes:
       - gitea-data:/data
     healthcheck:
@@ -16,40 +17,6 @@ services:
       retries: 15
       start_period: 3s
     restart: unless-stopped
-
-  init:
-    image: gitea/gitea:1.27.0
-    container_name: gitea-init
-    depends_on:
-      gitea:
-        condition: service_healthy
-    environment:
-      GITEA_URL: http://gitea:3000
-      DEV_USER: dev
-      DEV_PASSWORD: Password123!
-      DEV_EMAIL: dev@example.com
-      DEV_REPO: project
-    restart: "no"
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - |
-        if ! curl -fsS -u "$${DEV_USER}:$${DEV_PASSWORD}" "$${GITEA_URL}/api/v1/user" >/dev/null 2>&1; then
-          curl -fsS -X POST "$${GITEA_URL}/user/sign_up" \
-            --data-urlencode "user_name=$${DEV_USER}" \
-            --data-urlencode "email=$${DEV_EMAIL}" \
-            --data-urlencode "password=$${DEV_PASSWORD}" \
-            --data-urlencode "retype=$${DEV_PASSWORD}" >/dev/null
-        fi
-
-        if ! curl -fsS -u "$${DEV_USER}:$${DEV_PASSWORD}" "$${GITEA_URL}/api/v1/repos/$${DEV_USER}/$${DEV_REPO}" >/dev/null 2>&1; then
-          curl -fsS -X POST "$${GITEA_URL}/api/v1/user/repos" \
-            -u "$${DEV_USER}:$${DEV_PASSWORD}" \
-            -H "Content-Type: application/json" \
-            -d "{\"name\":\"$${DEV_REPO}\",\"auto_init\":true,\"default_branch\":\"main\"}" >/dev/null
-        fi
-
-        curl -fsS -u "$${DEV_USER}:$${DEV_PASSWORD}" "$${GITEA_URL}/api/v1/repos/$${DEV_USER}/$${DEV_REPO}" >/dev/null
-        echo "[+] Initialized default user and repo successfully."
 
 volumes:
   gitea-data:
